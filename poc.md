@@ -1,27 +1,109 @@
 # Pocket Feature POC: What & Why
 
-This document explains the technical decisions and the implementation strategy behind the Pocket Feature (Linked Accounts) Proof of Concept (Draft PR).
+This document outlines the implementation approach and technical decisions behind the Pocket Feature (Linked Accounts) Proof of Concept (Draft PR).
 
-## 1. What We Did
-Rather than just building a disconnected UI mockup or a single API class, we built a **Vertical Architectural Slice** of the feature across all KMP layers:
+## 1. What Was Implemented
 
-* **Domain Models (`core/model`):** Created `Pocket.kt` and `LinkedAccount.kt`, fully annotated with `@Serializable`.
-* **Network Contract (`core/network`):** Defined the `PocketService.kt` interface using Ktorfit to strictly map the GET and POST endpoints.
-* **Data Layer (`core/data`):** Created the `PocketRepository.kt` abstraction and a `MockPocketRepositoryImpl.kt` that utilizes Kotlin Coroutines (`delay`) and `Flow` to return synthetic data.
-* **Presentation Layer (`feature/pocket`):** Built a reactive `PocketViewModel.kt` utilizing `StateFlow` and a KMP Material 3 Compose screen (`PocketDashboardScreen.kt`).
+Instead of building only a UI prototype or a standalone API layer, this POC implements a complete vertical slice of the feature across the KMP architecture.
 
-## 2. Why We Did It This Way
+### Domain Models (`core/model`)
+Created the following models with Kotlin serialization support:
 
-### Why a Vertical Slice instead of just UI?
-To prove KMP proficiency. A senior engineer doesn't just write UI; they ensure the data flows cleanly from the network to the screen. By touching `core/model`, `core/network`, `core/data`, and `feature`, we prove that we understand the project's strict modular boundaries and dependency injection patterns.
+- `Pocket.kt`
+- `LinkedAccount.kt`
 
-### Why a Mock Repository?
-**Unblocking UI Development.** In early-stage feature development, waiting for a fully deployed backend or struggling with local server setups wastes time. 
-* By creating `MockPocketRepositoryImpl.kt`, the UI can be built, styled, and state-tested immediately. 
-* It explicitly defines the contract. When the real API is ready, we simply swap `MockPocketRepositoryImpl` for `NetworkPocketRepositoryImpl` in the DI graph. The UI and ViewModel code will not change by a single line.
+Both models are annotated with `@Serializable` to ensure consistent serialization across platforms.
 
-### Why StateFlow over standard Callbacks?
-**Reactivity & KMP Compatibility.** `StateFlow` is a pure Kotlin construct, making it perfectly suited for KMP. By combining `StateFlow` with a sealed `PocketUiState` class (Loading, Success, Error), we guarantee that our Compose UI exhaustively handles all possible states, eliminating entire classes of runtime UI bugs.
+### Network Contract (`core/network`)
+Defined `PocketService.kt` using Ktorfit to map the required API endpoints:
+
+- `GET` endpoints for fetching pocket data
+- `POST` endpoints for linked account actions
+
+This establishes a clear network contract for future backend integration.
+
+### Data Layer (`core/data`)
+Implemented:
+
+- `PocketRepository.kt` as the repository contract
+- `MockPocketRepositoryImpl.kt` as the initial implementation
+
+The mock repository uses:
+
+- Kotlin Coroutines
+- `Flow`
+- `delay()`
+
+to simulate asynchronous network behavior while returning synthetic data.
+
+### Presentation Layer (`feature/pocket`)
+Built the feature UI using:
+
+- `PocketViewModel.kt`
+- `StateFlow` for reactive state management
+- Material 3 Compose components
+
+The UI is exposed through:
+
+- `PocketDashboardScreen.kt`
 
 ---
-**Summary:** This POC is structured to drop straight into the codebase as a robust, scalable foundation, demonstrating clean code, separation of concerns, and pragmatic problem-solving.
+
+## 2. Implementation Decisions
+
+### Vertical Slice Implementation
+
+The feature was implemented across all architectural layers instead of isolating the UI or data layer.
+
+This approach validates:
+
+- module boundaries
+- dependency flow
+- data transformation across layers
+- consistency with the existing KMP architecture
+
+It also provides a working foundation that can be integrated directly into the codebase.
+
+### Mock Repository
+
+A mock repository was introduced to enable feature development independently of backend availability.
+
+This provides several advantages:
+
+- UI development can continue without waiting for backend deployment
+- state handling can be tested early
+- API contracts can be validated before integration
+
+When backend APIs are available, the mock implementation can be replaced with a network-backed repository through dependency injection without requiring changes in the ViewModel or UI layers.
+
+### StateFlow for State Management
+
+`StateFlow` was selected as the primary state management mechanism.
+
+Benefits include:
+
+- platform-independent reactive state handling
+- seamless integration with Kotlin Multiplatform
+- predictable UI updates
+- lifecycle-aware state observation in Compose
+
+The UI state is modeled using a sealed `PocketUiState`:
+
+- `Loading`
+- `Success`
+- `Error`
+
+This ensures that all UI states are explicitly handled and simplifies state-driven rendering.
+
+---
+
+## Summary
+
+This POC establishes a production-ready foundation for the Pocket Feature by implementing:
+
+- clear separation of concerns
+- modular architecture
+- reactive state management
+- backend-independent feature development
+
+The current implementation can be extended by replacing the mock repository with a network-backed implementation while keeping the presentation layer unchanged.
